@@ -23,7 +23,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,16 +33,8 @@ var cfgFile string
 // This represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "gbdxcli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Short: "A CLI for GBDX.",
+	Long:  `TODO: provide a long description.`,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -63,22 +54,31 @@ func init() {
 func initConfig() {
 
 	// Ensure $HOME/.gbdx is created.  We write config as well as store persistent goods here, so it must exist.
-	if err := ensureGBDXDir(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed ensuring existence of $HOME/.gbdx directory\n")
+	gbdxPath, err := ensureGBDXDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed ensuring existence of %s directory\n", gbdxPath)
 		os.Exit(1)
 	}
 
 	// Set configuration variables.
+	//viper.RegisterAlias("default.gbdx_username", "Username")
+
 	viper.SetEnvPrefix("gbdx")
-	viper.SetDefault("username", "")
-	viper.SetDefault("password", "")
-	viper.SetDefault("clientID", "")
-	viper.SetDefault("clientSecret", "")
+	viper.BindEnv("username")
+	// viper.SetDefault("default",
+	// 	map[string]string{
+	// 		"Username":     "",
+	// 		"Password":     "",
+	// 		"ClientID":     "",
+	// 		"ClientSecret": "",
+	// 	})
+
+	// viper.BindEnv("Username", "GBDX_USERNAME")
 
 	// Where to find the configuration.
-	viper.SetConfigName("config")                    // name of gbdx config file (without extension)
-	viper.AddConfigPath(path.Join("$HOME", ".gbdx")) // adding gbdx directory as first search path
-	viper.AutomaticEnv()                             // read in environment variables that match
+	viper.SetConfigName("credentials") // name of gbdx config file (without extension)
+	viper.AddConfigPath(gbdxPath)      // adding gbdx directory as first search path
+	viper.AutomaticEnv()               // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
@@ -88,8 +88,8 @@ func initConfig() {
 
 // GBDXConfiguration holds the various configuation items we need to interact with GBDX.
 type GBDXConfiguration struct {
-	username       string
-	password       string
-	clientID       string
-	clientPassword string
+	Username       string `toml:"gbdx_username"`
+	Password       string `toml:"gbdx_password"`
+	ClientID       string `toml:"gbdx_client_id"`
+	ClientPassword string `toml:"gbdx_client_password"`
 }

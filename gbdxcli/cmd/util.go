@@ -7,8 +7,10 @@ import (
 )
 
 // ensureGBDXDir will create the gbdx directory if it doesn't already exist.
-func ensureGBDXDir() error {
-	return os.MkdirAll(path.Join(userHomeDir(), ".gbdx"), 0775)
+func ensureGBDXDir() (string, error) {
+	gbdxPath := path.Join(userHomeDir(), ".gbdx")
+	err := os.MkdirAll(gbdxPath, 0775)
+	return gbdxPath, err
 }
 
 // userHomeDir returns the home directory of the user.  I've borrowed

@@ -22,7 +22,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"path"
+
+	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,6 +49,20 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 
 	var config GBDXConfiguration
 
+	val := viper.GetString("default.gbdx_username")
+	fmt.Printf("%q\n", val)
+	fmt.Printf("keys are %v\n", viper.AllKeys())
+	for _, k := range viper.AllKeys() {
+		fmt.Printf("%q: %q\n", k, viper.Get(k))
+	}
+
+	return err
+
+	gbdxPath, err := ensureGBDXDir()
+	if err != nil {
+		return err
+	}
+
 	// Get the configuration from the command line.
 	var configVars = []struct {
 		varName  string
@@ -52,10 +70,10 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		val      *string
 		isSecret bool
 	}{
-		{"username", "GBDX User Name", &config.username, false},
-		{"password", "GBDX Password", &config.password, true},
-		{"clientID", "GBDX Client ID", &config.clientID, false},
-		{"clientPassword", "GBDX Client Password", &config.clientPassword, true},
+		{"Username", "GBDX User Name", &config.Username, false},
+		{"Password", "GBDX Password", &config.Password, true},
+		{"ClientID", "GBDX Client ID", &config.ClientID, false},
+		{"ClientPassword", "GBDX Client Password", &config.ClientPassword, true},
 	}
 	for _, configVar := range configVars {
 		// Pretty print the prompt for this variable.
@@ -78,8 +96,22 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 			*configVar.val = viper.GetString(configVar.varName)
 		}
 	}
-	fmt.Println(config)
 
+	// Save to the GBDX config file.
+	file, err := os.Create(path.Join(gbdxPath, "configure.toml"))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	enc := toml.NewEncoder(file)
+	enc.Indent = ""
+
+	err = enc.Encode(
+		&struct {
+			Default *GBDXConfiguration `toml:"default"`
+		}{&config},
+	)
 	return err
 }
 
