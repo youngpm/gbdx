@@ -29,14 +29,21 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/youngpm/gbdx"
 )
 
 type secretString string
 
 // String returns secretString types as a string with hidden entries.
 func (s secretString) String() (str string) {
-	for i, c := range s {
-		if i > 3 && len(s)-i < 5 {
+	var ss secretString
+	if len(s) > 10 {
+		ss = s[len(s)-10:]
+	} else {
+		ss = s
+	}
+	for i, c := range ss {
+		if i > 3 && len(ss)-i < 5 {
 			str += string(c)
 		} else {
 			str += "*"
@@ -86,15 +93,12 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		// returned, we ignore it and just use the default, which is a
 		// nice way to handle the user just hitting enter when wanting to
 		// keep the default.
-		_, err := fmt.Scanln(configVar.val)
-		if err != nil {
-			fmt.Println("no input")
-		}
+		fmt.Scanln(configVar.val)
 	}
 
 	// Read in configuration file if it exists.
 	var confFile string
-	profilesOut := make(map[string]GBDXConfig)
+	profilesOut := make(map[string]gbdx.GBDXConfig)
 	if confFile = viper.ConfigFileUsed(); len(confFile) > 0 {
 		_, err = toml.DecodeFile(confFile, &profilesOut)
 		if err != nil {
