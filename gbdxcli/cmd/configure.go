@@ -47,15 +47,17 @@ func (s secretString) String() (str string) {
 
 func configure(cmd *cobra.Command, args []string) (err error) {
 
-	var config GBDXConfiguration
+	viper.RegisterAlias("Active", "Default")
 
-	val := viper.GetString("default.gbdx_username")
-	fmt.Printf("%q\n", val)
-	fmt.Printf("keys are %v\n", viper.AllKeys())
-	for _, k := range viper.AllKeys() {
-		fmt.Printf("%q: %q\n", k, viper.Get(k))
+	type TomlConfig struct {
+		Active GBDXConfiguration
 	}
 
+	var tomlConfig TomlConfig
+	err = viper.Unmarshal(&tomlConfig)
+	config := tomlConfig.Active
+
+	fmt.Printf("Configuration: %+v\n", config)
 	return err
 
 	gbdxPath, err := ensureGBDXDir()

@@ -64,7 +64,6 @@ func initConfig() {
 	//viper.RegisterAlias("default.gbdx_username", "Username")
 
 	viper.SetEnvPrefix("gbdx")
-	viper.BindEnv("username")
 	// viper.SetDefault("default",
 	// 	map[string]string{
 	// 		"Username":     "",
@@ -73,7 +72,10 @@ func initConfig() {
 	// 		"ClientSecret": "",
 	// 	})
 
-	// viper.BindEnv("Username", "GBDX_USERNAME")
+	// viper.RegisterAlias("Username", "gbdx_username")
+	// viper.RegisterAlias("Password", "gbdx_password")
+	// viper.RegisterAlias("ClientID", "gbdx_client_id")
+	// viper.RegisterAlias("ClientPassword", "gbdx_client_password")
 
 	// Where to find the configuration.
 	viper.SetConfigName("credentials") // name of gbdx config file (without extension)
@@ -84,12 +86,14 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+
+	//viper.RegisterAlias("Username", "gbdx_username")
 }
 
 // GBDXConfiguration holds the various configuation items we need to interact with GBDX.
 type GBDXConfiguration struct {
-	Username       string `toml:"gbdx_username"`
-	Password       string `toml:"gbdx_password"`
-	ClientID       string `toml:"gbdx_client_id"`
-	ClientPassword string `toml:"gbdx_client_password"`
+	Username       string `mapstructure:"gbdx_username" toml:"gbdx_username"`
+	Password       string `mapstructure:"gbdx_password" toml:"gbdx_password"`
+	ClientID       string `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
+	ClientPassword string `mapstructure:"gbdx_client_password" toml:"gbdx_client_password"`
 }
