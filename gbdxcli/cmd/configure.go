@@ -47,40 +47,33 @@ func (s secretString) String() (str string) {
 
 func configure(cmd *cobra.Command, args []string) (err error) {
 
-	viper.RegisterAlias("Active", "Default")
-
-	type TomlConfig struct {
-		Active GBDXConfiguration
-	}
-
-	var tomlConfig TomlConfig
-	err = viper.Unmarshal(&tomlConfig)
-	config := tomlConfig.Active
-
-	fmt.Printf("Configuration: %+v\n", config)
-	return err
-
+	// Make sure the GBDX directory exists.
 	gbdxPath, err := ensureGBDXDir()
 	if err != nil {
 		return err
 	}
 
+	// Load the existing profile, if there is one.
+	var profile GBDXProfile
+	if err = viper.Unmarshal(&profile); err != nil {
+		return err
+	}
+
 	// Get the configuration from the command line.
 	var configVars = []struct {
-		varName  string
 		prompt   string
 		val      *string
 		isSecret bool
 	}{
-		{"Username", "GBDX User Name", &config.Username, false},
-		{"Password", "GBDX Password", &config.Password, true},
-		{"ClientID", "GBDX Client ID", &config.ClientID, false},
-		{"ClientPassword", "GBDX Client Password", &config.ClientPassword, true},
+		{"GBDX User Name", &profile.ActiveConfig.Username, false},
+		{"GBDX Password", &profile.ActiveConfig.Password, true},
+		{"GBDX Client ID", &profile.ActiveConfig.ClientID, false},
+		{"GBDX Client Secret", &profile.ActiveConfig.ClientSecret, true},
 	}
 	for _, configVar := range configVars {
 		// Pretty print the prompt for this variable.
 		fmt.Printf(configVar.prompt)
-		if val := viper.GetString(configVar.varName); len(val) > 0 {
+		if val := *configVar.val; len(val) > 0 {
 			if configVar.isSecret {
 				fmt.Printf(" [%s]", secretString(val))
 			} else {
@@ -95,52 +88,46 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		// keep the default.
 		_, err := fmt.Scanln(configVar.val)
 		if err != nil {
-			*configVar.val = viper.GetString(configVar.varName)
+			fmt.Println("no input")
 		}
 	}
 
+	// Read in configuration file if it exists.
+	var confFile string
+	profilesOut := make(map[string]GBDXConfig)
+	if confFile = viper.ConfigFileUsed(); len(confFile) > 0 {
+		_, err = toml.DecodeFile(confFile, &profilesOut)
+		if err != nil {
+			return err
+		}
+	} else {
+		confFile = path.Join(gbdxPath, "credentials.toml")
+	}
+
+	// Update/add the new profile.
+	profilesOut[viper.GetString("profile")] = profile.ActiveConfig
+
 	// Save to the GBDX config file.
-	file, err := os.Create(path.Join(gbdxPath, "configure.toml"))
+	file, err := os.Create(confFile)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-
 	enc := toml.NewEncoder(file)
 	enc.Indent = ""
+	err = enc.Encode(profilesOut)
 
-	err = enc.Encode(
-		&struct {
-			Default *GBDXConfiguration `toml:"default"`
-		}{&config},
-	)
 	return err
 }
 
 // configureCmd represents the configure command
 var configureCmd = &cobra.Command{
 	Use:   "configure",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	RunE: configure,
+	Short: "Stores your GBDX configuration",
+	Long:  `Store your GBDX configuration in the .gbdx home directory.`,
+	RunE:  configure,
 }
 
 func init() {
 	RootCmd.AddCommand(configureCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// configureCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// configureCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

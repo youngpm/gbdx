@@ -32,9 +32,8 @@ var cfgFile string
 
 // This represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "gbdxcli",
-	Short: "A CLI for GBDX.",
-	Long:  `TODO: provide a long description.`,
+	Use:  "gbdxcli",
+	Long: "A CLI for GBDX.",
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -47,11 +46,17 @@ func Execute() {
 }
 
 func init() {
+	// Define global flags.
+	RootCmd.PersistentFlags().String("profile", "default", "GBDX profile to use")
+	viper.BindPFlag("profile", RootCmd.PersistentFlags().Lookup("profile"))
 	cobra.OnInitialize(initConfig)
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+
+	// We map a user defined profile from the cli to the active profile.
+	viper.RegisterAlias("ActiveConfig", viper.GetString("profile"))
 
 	// Ensure $HOME/.gbdx is created.  We write config as well as store persistent goods here, so it must exist.
 	gbdxPath, err := ensureGBDXDir()
@@ -60,40 +65,24 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	// Set configuration variables.
-	//viper.RegisterAlias("default.gbdx_username", "Username")
-
-	viper.SetEnvPrefix("gbdx")
-	// viper.SetDefault("default",
-	// 	map[string]string{
-	// 		"Username":     "",
-	// 		"Password":     "",
-	// 		"ClientID":     "",
-	// 		"ClientSecret": "",
-	// 	})
-
-	// viper.RegisterAlias("Username", "gbdx_username")
-	// viper.RegisterAlias("Password", "gbdx_password")
-	// viper.RegisterAlias("ClientID", "gbdx_client_id")
-	// viper.RegisterAlias("ClientPassword", "gbdx_client_password")
-
-	// Where to find the configuration.
+	// Where to find the configuration file.
 	viper.SetConfigName("credentials") // name of gbdx config file (without extension)
 	viper.AddConfigPath(gbdxPath)      // adding gbdx directory as first search path
-	viper.AutomaticEnv()               // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
-
-	//viper.RegisterAlias("Username", "gbdx_username")
 }
 
-// GBDXConfiguration holds the various configuation items we need to interact with GBDX.
-type GBDXConfiguration struct {
-	Username       string `mapstructure:"gbdx_username" toml:"gbdx_username"`
-	Password       string `mapstructure:"gbdx_password" toml:"gbdx_password"`
-	ClientID       string `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
-	ClientPassword string `mapstructure:"gbdx_client_password" toml:"gbdx_client_password"`
+// GBDXConfig holds the various configuation items we need to interact with GBDX.
+type GBDXConfig struct {
+	Username     string `mapstructure:"gbdx_username" toml:"gbdx_username"`
+	Password     string `mapstructure:"gbdx_password" toml:"gbdx_password"`
+	ClientID     string `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
+	ClientSecret string `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
+}
+
+type GBDXProfile struct {
+	ActiveConfig GBDXConfig
 }
