@@ -9,3 +9,4 @@ tramp
 .\#*
 
 gbdxcli/gbdxcli
+*.test
