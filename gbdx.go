@@ -1,3 +1,7 @@
+// gbdx is a simple, transparent Go package for accessing the GBDX API.
+//
+// Successful API queries return native Go structs that can be used
+// immediately, with no need for type assertions.
 package gbdx
 
 import (
