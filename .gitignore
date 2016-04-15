@@ -9,3 +9,5 @@ tramp
 .\#*
 
 gbdxcli/gbdxcli
+/gbdxcli/cmd/flymake_configure.go
+/gbdxcli/cmd/flymake_root.go

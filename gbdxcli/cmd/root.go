@@ -69,11 +69,7 @@ func initConfig() {
 	// Where to find the configuration file.
 	viper.SetConfigName("credentials") // name of gbdx config file (without extension)
 	viper.AddConfigPath(gbdxPath)      // adding gbdx directory as first search path
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	viper.ReadInConfig()
 }
 
 // GBDXProfile holds the active configuration of the cli.
