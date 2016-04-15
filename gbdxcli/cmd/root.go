@@ -76,6 +76,7 @@ func initConfig() {
 	}
 }
 
+// GBDXProfile holds the active configuration of the cli.
 type GBDXProfile struct {
-	ActiveConfig gbdx.GBDXConfig
+	ActiveConfig gbdx.Config
 }

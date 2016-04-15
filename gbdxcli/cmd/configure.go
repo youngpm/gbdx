@@ -36,14 +36,8 @@ type secretString string
 
 // String returns secretString types as a string with hidden entries.
 func (s secretString) String() (str string) {
-	var ss secretString
-	if len(s) > 10 {
-		ss = s[len(s)-10:]
-	} else {
-		ss = s
-	}
-	for i, c := range ss {
-		if i > 3 && len(ss)-i < 5 {
+	for i, c := range s {
+		if i > 3 && len(s)-i < 5 {
 			str += string(c)
 		} else {
 			str += "*"
@@ -74,7 +68,7 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	}{
 		{"GBDX User Name", &profile.ActiveConfig.Username, false},
 		{"GBDX Password", &profile.ActiveConfig.Password, true},
-		{"GBDX Client ID", &profile.ActiveConfig.ClientID, false},
+		{"GBDX Client ID", &profile.ActiveConfig.ClientID, true},
 		{"GBDX Client Secret", &profile.ActiveConfig.ClientSecret, true},
 	}
 	for _, configVar := range configVars {
@@ -82,7 +76,7 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		fmt.Printf(configVar.prompt)
 		if val := *configVar.val; len(val) > 0 {
 			if configVar.isSecret {
-				fmt.Printf(" [%s]", secretString(val))
+				fmt.Printf(" [%s]", secretString(val[max(0, len(val)-10):]))
 			} else {
 				fmt.Printf(" [%s]", val)
 			}
@@ -98,7 +92,7 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 
 	// Read in configuration file if it exists.
 	var confFile string
-	profilesOut := make(map[string]gbdx.GBDXConfig)
+	profilesOut := make(map[string]gbdx.Config)
 	if confFile = viper.ConfigFileUsed(); len(confFile) > 0 {
 		_, err = toml.DecodeFile(confFile, &profilesOut)
 		if err != nil {
@@ -122,6 +116,13 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	err = enc.Encode(profilesOut)
 
 	return err
+}
+
+func max(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }
 
 // configureCmd represents the configure command
