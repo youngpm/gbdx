@@ -1,7 +1,10 @@
 package gbdx
 
 import (
+	"fmt"
 	"net/http"
+
+	"io"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -35,6 +38,27 @@ func NewApi(c Config) (*Api, error) {
 		nil
 }
 
+// Token returns a GBDX auth token.
 func (a *Api) Token() (*oauth2.Token, error) {
 	return a.tokenSource.Token()
+}
+
+// Browse writes a browse image with catalog id cid and reqested dimension dim to w.
+func Browse(cid string, dim string, w io.Writer) error {
+
+	url := fmt.Sprintf("%s%s.%s.png", endpoints.browse, cid, dim)
+	fmt.Println(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("Browse fetch failure %s: %v", resp.Status, err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Bad status code: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		return fmt.Errorf("Failed copying response: %v", err)
+	}
+	return err
 }
