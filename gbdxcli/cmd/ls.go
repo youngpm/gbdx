@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,22 +33,25 @@ func listCustomerBucket(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-
-	result, err := api.ListBucket()
+	if len(args) == 0 {
+		err = api.ListBucket("", os.Stdout)
+	} else if len(args) == 1 {
+		err = api.ListBucket(args[0], os.Stdout)
+	} else {
+		return fmt.Errorf("Expected 0 or 1 arguments, got %d.  Args are %v", len(args), args)
+	}
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%s\n", result)
 
 	return nil
 }
 
 // lsCmd represents the ls command
 var lsCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "List  S3  objects and common prefixes under your customer prefix",
-	Long:  `List  S3  objects and common prefixes under your customer prefix`,
+	Use:   "ls [user_prefix or NONE]",
+	Short: "List objects (files) and common prefixes (sub-directories) under your customer prefix",
+	Long:  `List objects (files) and common prefixes (sub-directories) under your customer prefix. Pass in optional user_prefix to restrict the listing to files in sub directories.`,
 	RunE:  listCustomerBucket,
 }
 
