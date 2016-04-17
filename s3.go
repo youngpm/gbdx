@@ -65,7 +65,7 @@ func getAwsS3Client(tmpCreds s3Info, awsRegion string) *s3.S3 {
 
 // ListBucket writes a listing of contents of the GBDX customer bucket
 // to w.
-func (a *Api) ListBucket(requestedPrefix string, w io.Writer) (err error) {
+func (a *Api) ListBucket(requestedPrefix string, recursive bool, w io.Writer) (err error) {
 	tmpCreds, err := getS3Info(a.client)
 	if err != nil {
 		return fmt.Errorf("getS3Info(%v): %v", a.client, err)
@@ -85,9 +85,16 @@ func (a *Api) ListBucket(requestedPrefix string, w io.Writer) (err error) {
 		rootPrefix = fmt.Sprintf("%s/%s/", tmpCreds.Prefix, requestedPrefix)
 	}
 
+	// Delimiter tells s3.ListObjects where to stop fetching.  If
+	// it's "", you get recursive output.
+	delimiter := ""
+	if !recursive {
+		delimiter = "/"
+	}
+
 	inputParams := &s3.ListObjectsInput{
 		Bucket:    &tmpCreds.Bucket,
-		Delimiter: aws.String("/"),
+		Delimiter: &delimiter,
 		Prefix:    &rootPrefix,
 	}
 
@@ -112,7 +119,7 @@ func (a *Api) ListBucket(requestedPrefix string, w io.Writer) (err error) {
 
 	// Contents is a slice of files found in the bucket.
 	for _, obj := range listObjectsOutput.Contents {
-		_, err = io.WriteString(w, fmt.Sprintf("%-20v %10v %v\n", (*obj.LastModified).Format("2006-01-02 15:04:05"), *obj.Size, *obj.Key))
+		_, err = io.WriteString(w, fmt.Sprintf("%-20v %10v %v\n", (*obj.LastModified).Format("2006-01-02 15:04:05"), *obj.Size, (*obj.Key)[len(rootPrefix):]))
 		if err != nil {
 			return fmt.Errorf("Writing listObjectsOutput.Contents: %v", err)
 		}

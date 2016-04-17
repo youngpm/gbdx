@@ -33,13 +33,19 @@ func listCustomerBucket(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
+
+	// Determine optional PREFIX positional argument
+	var prefix string
 	if len(args) == 0 {
-		err = api.ListBucket("", os.Stdout)
+		prefix = ""
 	} else if len(args) == 1 {
-		err = api.ListBucket(args[0], os.Stdout)
+		prefix = args[0]
 	} else {
 		return fmt.Errorf("Expected 0 or 1 arguments, got %d.  Args are %v", len(args), args)
 	}
+
+	// Invoke the command!
+	err = api.ListBucket(prefix, viper.GetBool("recursive"), os.Stdout)
 	if err != nil {
 		return err
 	}
@@ -68,4 +74,6 @@ func init() {
 	// is called directly, e.g.:
 	// lsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
+	lsCmd.Flags().BoolP("recursive", "r", false, "Command is performed  on  all  files  or  objects under the specified directory or prefix.")
+	viper.BindPFlag("recursive", lsCmd.Flags().Lookup("recursive"))
 }
