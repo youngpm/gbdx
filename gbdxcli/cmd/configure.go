@@ -47,7 +47,6 @@ func (s secretString) String() (str string) {
 }
 
 func configure(cmd *cobra.Command, args []string) (err error) {
-
 	// Make sure the GBDX directory exists.
 	gbdxPath, err := ensureGBDXDir()
 	if err != nil {

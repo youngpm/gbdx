@@ -23,56 +23,55 @@ import (
 	"github.com/youngpm/gbdx"
 )
 
-func browse(cmd *cobra.Command, args []string) error {
+var validBrowseDims = map[string]bool{
+	"small":  true,
+	"medium": true,
+	"large":  true,
+	"natres": true,
+}
 
-	if len(args) < 1 {
-		return fmt.Errorf("One positional argument must be provided.")
-	}
+func browse(cmd *cobra.Command, args []string) (err error) {
+	// Deal with positional arguments.
 	var f *os.File
-	if len(args) == 2 {
-		f, err := os.Create(args[1])
+	switch len(args) {
+	case 1:
+		f = os.Stdout
+	case 2:
+		f, err = os.Create(args[1])
 		if err != nil {
 			return fmt.Errorf("Can't create %s: %v", args[1], err)
 		}
 		defer f.Close()
-	} else {
-		f = os.Stdout
+	default:
+		return fmt.Errorf("one or two positional arguments must be provided")
 	}
 
+	// Validate the dimension that has been requested.
 	dim := viper.GetString("dim")
-	browseSizes := map[string]bool{
-		"small":  true,
-		"medium": true,
-		"large":  true,
-		"natres": true,
+	if !validBrowseDims[dim] {
+		return fmt.Errorf("requested browse dimension of %q is invalid", dim)
 	}
-	if !browseSizes[dim] {
-		return fmt.Errorf("Browse dimension of %q is invalid.", dim)
-	}
-	err := gbdx.Browse(args[0], dim, f)
-	return err
+
+	// Get the browse.
+	return gbdx.Browse(args[0], dim, f)
 }
 
 // browseCmd represents the browse command
 var browseCmd = &cobra.Command{
-	Use:   "browse",
+	Use:   "browse [cid] [outfile]",
 	Short: "Download a browse",
-	Long:  `Download browse imagery.`,
-	RunE:  browse,
+	Long: `Download browse imagery.
+
+You must provide [cid]; the catalog id of the browse png you want.
+outfile is optional; if not provided, the file will be streamed to
+stdout.`,
+	RunE: browse,
 }
 
 func init() {
 	RootCmd.AddCommand(browseCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// browseCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	browseCmd.Flags().String("dim", "small", "dimension of browse (small, medium, large, or natres)")
+	browseCmd.Flags().String("dim", "small", "dimension of browse (\"small\", \"medium\", \"large\", or \"natres\")")
 	viper.BindPFlag("dim", browseCmd.Flags().Lookup("dim"))
 
 }

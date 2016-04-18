@@ -43,22 +43,25 @@ func (a *Api) Token() (*oauth2.Token, error) {
 	return a.tokenSource.Token()
 }
 
-// Browse writes a browse image with catalog id cid and reqested dimension dim to w.
+// Browse writes a browse image with catalog id cid and requested dimension dim to w.
 func Browse(cid string, dim string, w io.Writer) error {
 
 	url := fmt.Sprintf("%s%s.%s.png", endpoints.browse, cid, dim)
-	fmt.Println(url)
+
+	// Note we use the default http client as no authentication is
+	// required (in fact it breaks the endpoint) to get a browse.
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Errorf("Browse fetch failure %s: %v", resp.Status, err)
+		return fmt.Errorf("browse fetch get failure %s: %v", resp.Status, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Bad status code: %s", resp.Status)
+		return fmt.Errorf("browse fetch returned a bad status code: %s", resp.Status)
 	}
 	defer resp.Body.Close()
+
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		return fmt.Errorf("Failed copying response: %v", err)
+		return fmt.Errorf("failed copying browse to output: %v", err)
 	}
 	return err
 }
