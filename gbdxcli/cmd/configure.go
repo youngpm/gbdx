@@ -50,13 +50,13 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	// Make sure the GBDX directory exists.
 	gbdxPath, err := ensureGBDXDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("configure failed to create the gbdx directory: %v", err)
 	}
 
 	// Load the existing profile, if there is one.
 	var profile GBDXProfile
 	if err = viper.Unmarshal(&profile); err != nil {
-		return err
+		return fmt.Errorf("configure failed to parse the configuration: %v", err)
 	}
 
 	// Get the configuration from the command line.
@@ -82,11 +82,18 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		}
 		fmt.Printf(": ")
 
-		// Read user input into the variable.  If an error is
-		// returned, we ignore it and just use the default, which is a
-		// nice way to handle the user just hitting enter when wanting to
-		// keep the default.
-		fmt.Scanln(configVar.val)
+		// Get user input for this value.
+		var s string
+		if n, err := fmt.Scanln(&s); err != nil && n > 0 {
+			// Gobble up remaining tokens if any.
+			for n, err := fmt.Scanln(&s); err != nil && n > 0; {
+			}
+			return fmt.Errorf("your input is bogus: %v", err)
+
+		}
+		if len(s) > 0 {
+			*configVar.val = s
+		}
 	}
 
 	// Read in configuration file if it exists.
@@ -95,7 +102,7 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	if confFile = viper.ConfigFileUsed(); len(confFile) > 0 {
 		_, err = toml.DecodeFile(confFile, &profilesOut)
 		if err != nil {
-			return err
+			return fmt.Errorf("configure failed to parse the configurtion: %v", err)
 		}
 	} else {
 		confFile = path.Join(gbdxPath, "credentials.toml")
@@ -107,14 +114,12 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	// Save to the GBDX config file.
 	file, err := os.Create(confFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("configure failed to create on disk the updated configuration: %v", err)
 	}
 	defer file.Close()
 	enc := toml.NewEncoder(file)
 	enc.Indent = ""
-	err = enc.Encode(profilesOut)
-
-	return err
+	return enc.Encode(profilesOut)
 }
 
 func max(x, y int) int {
