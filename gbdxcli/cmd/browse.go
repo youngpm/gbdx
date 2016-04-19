@@ -46,6 +46,11 @@ func browse(cmd *cobra.Command, args []string) (err error) {
 		return fmt.Errorf("one or two positional arguments must be provided")
 	}
 
+	// If metadata requested, return that.
+	if viper.GetBool("metadata") {
+		return gbdx.BrowseMetadata(args[0], f)
+	}
+
 	// Validate the dimension that has been requested.
 	dim := viper.GetString("dim")
 	if !validBrowseDims[dim] {
@@ -53,7 +58,7 @@ func browse(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	// Get the browse.
-	return gbdx.Browse(args[0], dim, f)
+	return gbdx.Browse(args[0], dim, viper.GetBool("json"), f)
 }
 
 // browseCmd represents the browse command
@@ -72,6 +77,10 @@ func init() {
 	RootCmd.AddCommand(browseCmd)
 
 	browseCmd.Flags().String("dim", "small", "dimension of browse (\"small\", \"medium\", \"large\", or \"natres\")")
+	browseCmd.Flags().Bool("json", false, "Return JSON containing paths to both the image and metadata of the browse")
+	browseCmd.Flags().Bool("metadata", false, "Return GeoJSON metadata describing the browse rather than the browse itself")
 	viper.BindPFlag("dim", browseCmd.Flags().Lookup("dim"))
+	viper.BindPFlag("json", browseCmd.Flags().Lookup("json"))
+	viper.BindPFlag("metadata", browseCmd.Flags().Lookup("metadata"))
 
 }
