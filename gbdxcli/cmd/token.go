@@ -39,7 +39,7 @@ func printToken(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	result, err := json.MarshalIndent(token, "", "    ")
+	result, err := json.Marshal(token)
 	if err != nil {
 		return err
 	}
