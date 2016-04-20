@@ -12,9 +12,11 @@ var endpoints = struct {
 	browse         string
 	browseJSON     string
 	browseMetadata string
+	thumbnail      string
 }{
 	tokens:         "https://geobigdata.io/auth/v1/oauth/token/",
 	browse:         "https://geobigdata.io/thumbnails/v1/browse/",
 	browseJSON:     "https://geobigdata.io/thumbnails/v1/get/",
 	browseMetadata: "https://geobigdata.io/thumbnails/v1/metadata/",
+	thumbnail:      "https://geobigdata.io/thumbnails/v1/thumbnail/",
 }
