@@ -1,17 +1,21 @@
 package gbdx
 
 import (
-	"fmt"
 	"net/http"
-
-	"io"
-
-	"net/url"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
+// Config holds the various configuation items we need to interact with GBDX.
+type Config struct {
+	Username     string `mapstructure:"gbdx_username" toml:"gbdx_username"`
+	Password     string `mapstructure:"gbdx_password" toml:"gbdx_password"`
+	ClientID     string `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
+	ClientSecret string `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
+}
+
+// Api holds GBDX authorized http clients and tokens.
 type Api struct {
 	tokenSource oauth2.TokenSource
 	client      *http.Client
@@ -43,79 +47,4 @@ func NewApi(c Config) (*Api, error) {
 // Token returns a GBDX auth token.
 func (a *Api) Token() (*oauth2.Token, error) {
 	return a.tokenSource.Token()
-}
-
-// Browse writes a browse image with catalog id cid and requested size to w.
-func Browse(cid string, size string, json bool, w io.Writer) error {
-
-	var endpoint string
-	if json {
-		endpoint = endpoints.browseJSON
-	} else {
-		endpoint = endpoints.browse
-	}
-	url := fmt.Sprintf("%s%s.%s.png", endpoint, cid, size)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("browse fetch get failure %s: %v", resp.Status, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("browse fetch returned a bad status code: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed copying browse to output: %v", err)
-	}
-	return err
-}
-
-// BrowseMetadata writes the GeoJSON metadata of the catalog id cid to w.
-func BrowseMetadata(cid string, w io.Writer) error {
-
-	url := fmt.Sprintf("%s%s.json", endpoints.browseMetadata, cid)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("browse metadata fetch get failure %s: %v", resp.Status, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("browse metadata fetch returned a bad status code: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed copying browse metadata to output: %v", err)
-	}
-	return err
-}
-
-// Thumbnail writes a thumbnail image with catalog id cid, dimension dim, and orientation to w.
-func Thumbnail(cid string, dim int, orientation string, w io.Writer) error {
-
-	u, err := url.Parse(fmt.Sprintf("%s%s/%d", endpoints.thumbnail, cid, dim))
-	if err != nil {
-		return err
-	}
-	q := u.Query()
-	q.Add("orientation", orientation)
-	u.RawQuery = q.Encode()
-
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return fmt.Errorf("thumbnail fetch get failure %s: %v", resp.Status, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("thumbnail fetch returned a bad status code: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(w, resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed copying thumbnail to output: %v", err)
-	}
-	return err
 }

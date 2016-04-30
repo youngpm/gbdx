@@ -63,11 +63,11 @@ func browse(cmd *cobra.Command, args []string) (err error) {
 
 // browseCmd represents the browse command
 var browseCmd = &cobra.Command{
-	Use:   "browse [cid] [outfile]",
+	Use:   "browse [CID] [OUT]",
 	Short: "Download a browse",
 	Long: `Download browse imagery.
 
-You must provide [cid]; the catalog id of the browse png you want.
+You must provide [CID]; the catalog id of the browse png you want.
 outfile is optional; if not provided, the file will be streamed to
 stdout.`,
 	RunE: browse,

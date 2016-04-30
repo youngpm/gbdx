@@ -38,7 +38,8 @@ func getS3Info(client *http.Client) (tmpCreds s3Info, err error) {
 	if response.StatusCode != http.StatusOK {
 		var byteSlice []byte
 		response.Request.Body.Read(byteSlice)
-		return tmpCreds, fmt.Errorf("HTTP POST %s;  returned status %s, expected status %s; request body %q", url, response.Status, http.StatusOK, byteSlice)
+		return tmpCreds, fmt.Errorf("HTTP POST %s;  returned status %s, expected status %d; request body %q",
+			url, response.Status, http.StatusOK, byteSlice)
 	}
 
 	if err = json.NewDecoder(response.Body).Decode(&tmpCreds); err != nil {
