@@ -117,9 +117,7 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 		return fmt.Errorf("configure failed to create on disk the updated configuration: %v", err)
 	}
 	defer file.Close()
-	enc := toml.NewEncoder(file)
-	enc.Indent = ""
-	return enc.Encode(profilesOut)
+	return toml.NewEncoder(file).Encode(profilesOut)
 }
 
 func max(x, y int) int {

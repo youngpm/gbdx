@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"runtime"
+
+	"github.com/BurntSushi/toml"
+	"github.com/spf13/viper"
+	"github.com/youngpm/gbdx"
 )
 
 // ensureGBDXDir will create the gbdx directory if it doesn't already exist.
@@ -24,4 +29,42 @@ func userHomeDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
+}
+
+func apiFromConfig() (*gbdx.Api, error) {
+	var profile GBDXProfile
+	if err := viper.Unmarshal(&profile); err != nil {
+		return nil, err
+	}
+	return gbdx.NewApi(profile.ActiveConfig)
+}
+
+// cacheToken updates an existing configuration file with the
+// provided one.  Note that we only update the profile as stored in
+// viper.
+func cacheToken(api *gbdx.Api) error {
+
+	// Read in configuration file if it exists.
+	confFile := viper.ConfigFileUsed()
+	profilesOut := make(map[string]gbdx.Config)
+	_, err := toml.DecodeFile(confFile, &profilesOut)
+	if err != nil {
+		return fmt.Errorf("failed to parse the configurtion: %v", err)
+	}
+
+	// Update/add the token.
+	c := profilesOut[viper.GetString("profile")]
+	c.Token, err = api.Token()
+	if err != nil {
+		return fmt.Errorf("failed to fetch a token to cache: %v", err)
+	}
+	profilesOut[viper.GetString("profile")] = c
+
+	// Save to the GBDX config file.
+	file, err := os.Create(confFile)
+	if err != nil {
+		return fmt.Errorf("failed to write updated configuration to disk: %v", err)
+	}
+	defer file.Close()
+	return toml.NewEncoder(file).Encode(profilesOut)
 }

@@ -9,15 +9,16 @@ import (
 
 // Config holds the various configuation items we need to interact with GBDX.
 type Config struct {
-	Username     string `mapstructure:"gbdx_username" toml:"gbdx_username"`
-	Password     string `mapstructure:"gbdx_password" toml:"gbdx_password"`
-	ClientID     string `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
-	ClientSecret string `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
+	Username     string        `mapstructure:"gbdx_username" toml:"gbdx_username"`
+	Password     string        `mapstructure:"gbdx_password" toml:"gbdx_password"`
+	ClientID     string        `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
+	ClientSecret string        `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
+	Token        *oauth2.Token `mapstructure:"gbdx_token" toml:"gbdx_token"`
 }
 
 // Api holds GBDX authorized http clients and tokens.
 type Api struct {
-	tokenSource oauth2.TokenSource
+	tokenSource oauth2.TokenSource // This guy is kept around so we can cache the token for reuse.
 	client      *http.Client
 }
 
@@ -30,18 +31,26 @@ func NewApi(c Config) (*Api, error) {
 		Endpoint:     oauth2.Endpoint{TokenURL: endpoints.tokens},
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), GBDX_HTTP_TIMEOUT)
-	token, err := oauth2Conf.PasswordCredentialsToken(ctx, c.Username, c.Password)
-	defer cancel()
-	if err != nil {
-		return nil, err
+	// Use a pre existing token if we were passed one.
+	token := c.Token
+
+	// Get a new token if we need it.
+	var err error
+	if token == nil {
+		ctx, cancel := context.WithTimeout(context.TODO(), GBDX_HTTP_TIMEOUT)
+		token, err = oauth2Conf.PasswordCredentialsToken(ctx, c.Username, c.Password)
+		defer cancel()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tokenSource := oauth2Conf.TokenSource(context.TODO(), token)
 	return &Api{
-			tokenSource: tokenSource,
-			client:      oauth2.NewClient(context.TODO(), tokenSource)},
-		nil
+		tokenSource: tokenSource,
+		client:      oauth2.NewClient(context.TODO(), tokenSource),
+	}, err
+
 }
 
 // Token returns a GBDX auth token.

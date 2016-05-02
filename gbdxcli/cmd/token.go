@@ -19,21 +19,15 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/youngpm/gbdx"
 )
 
 func printToken(cmd *cobra.Command, args []string) (err error) {
 
-	var profile GBDXProfile
-	if err = viper.Unmarshal(&profile); err != nil {
-		return err
-	}
-
-	api, err := gbdx.NewApi(profile.ActiveConfig)
+	api, err := apiFromConfig()
 	if err != nil {
 		return err
 	}
+
 	token, err := api.Token()
 	if err != nil {
 		return err
@@ -45,7 +39,7 @@ func printToken(cmd *cobra.Command, args []string) (err error) {
 	}
 	fmt.Printf("%s\n", result)
 
-	return nil
+	return cacheToken(api)
 }
 
 // tokenCmd represents the token command

@@ -25,18 +25,12 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/youngpm/gbdx"
 )
 
 func orderStatus(cmd *cobra.Command, args []string) (err error) {
 
 	// Aquire an Api.
-	var profile GBDXProfile
-	if err = viper.Unmarshal(&profile); err != nil {
-		return err
-	}
-	api, err := gbdx.NewApi(profile.ActiveConfig)
+	api, err := apiFromConfig()
 	if err != nil {
 		return err
 	}
@@ -51,7 +45,7 @@ func orderStatus(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	fmt.Printf("%s\n", result)
-	return err
+	return cacheToken(api)
 }
 
 // orderCmd represents the order command
