@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/youngpm/gbdx"
 )
 
 func orderStatus(cmd *cobra.Command, args []string) (err error) {
@@ -35,12 +36,16 @@ func orderStatus(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	order, err := api.OrderStatus(args[0])
-	if err != nil {
-		return err
+	orders := []gbdx.Order{}
+	for _, id := range args {
+		order, err := api.OrderStatus(id)
+		if err != nil {
+			return err
+		}
+		orders = append(orders, *order)
 	}
 
-	result, err := json.Marshal(order)
+	result, err := json.Marshal(orders)
 	if err != nil {
 		return err
 	}
@@ -50,10 +55,13 @@ func orderStatus(cmd *cobra.Command, args []string) (err error) {
 
 // orderCmd represents the order command
 var orderStatusCmd = &cobra.Command{
-	Use:   "status [ORDERID]",
-	Short: "Check the status of a GBDX order",
-	Long:  `Check the status of a GBDX order.`,
-	RunE:  orderStatus,
+	Use:   "status [ORDERIDs]",
+	Short: "Check the status of GBDX orders",
+	Long: `Check the status of GBDX orders.
+
+Pass the order ids in space delimited arguments to check multiple
+orders.`,
+	RunE: orderStatus,
 }
 
 func init() {
