@@ -28,7 +28,23 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/youngpm/gbdx"
 )
+
+// Orders is an aggregation of the content of a collection of GBDX
+// Order structs.  Currently, the GBDX api will only let your order 100
+// items at a time, but this is inconvienent to deal with when placing
+// and checking on bulk orders.
+type Orders struct {
+	IDs          []string           `json:"order_ids"`
+	Acquisitions []gbdx.Acquisition `json:"acquisitions"`
+}
+
+// NewOrders returns a Orders object by aggregating together a slice of gbdx.Order objects.
+func (o *Orders) Append(order *gbdx.Order) {
+	o.IDs = append(o.IDs, order.ID)
+	o.Acquisitions = append(o.Acquisitions, order.Acquisitions...)
+}
 
 func order(cmd *cobra.Command, args []string) (err error) {
 

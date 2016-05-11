@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/youngpm/gbdx"
 )
 
 func orderStatus(cmd *cobra.Command, args []string) (err error) {
@@ -36,13 +35,13 @@ func orderStatus(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	orders := []gbdx.Order{}
+	var orders Orders
 	for _, id := range args {
 		order, err := api.OrderStatus(id)
 		if err != nil {
 			return err
 		}
-		orders = append(orders, *order)
+		orders.Append(order)
 	}
 
 	result, err := json.Marshal(orders)
