@@ -21,13 +21,33 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/youngpm/gbdx"
 )
 
 func orderStatus(cmd *cobra.Command, args []string) (err error) {
+
+	// Read order ids from stdin (line seperated)  if given no arguments.
+	if len(args) == 0 {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			args = append(args, scanner.Text())
+		}
+	}
+
+	// We do things concurrently, so make a channel for returning
+	// responses on and one to use as a counting semaphore.
+	type orderResponse struct {
+		order *gbdx.Order
+		err   error
+	}
+	ch := make(chan orderResponse, len(args))
+	sema := make(chan struct{}, 10) // Max concurrent requests.
 
 	// Aquire an Api.
 	api, err := apiFromConfig()
@@ -35,15 +55,28 @@ func orderStatus(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	var orders Orders
+	// Concurrently fetch the order status.
 	for _, id := range args {
-		order, err := api.OrderStatus(id)
-		if err != nil {
-			return err
-		}
-		orders.Append(order)
+		go func(id string) {
+			sema <- struct{}{}
+			var o orderResponse
+			o.order, o.err = api.OrderStatus(id)
+			<-sema
+			ch <- o
+		}(id)
 	}
 
+	// Aggregate the results.
+	var orders Orders
+	for range args {
+		o := <-ch
+		if o.err != nil {
+			return o.err
+		}
+		orders.Append(o.order)
+	}
+
+	// Marshall the aggregated result.
 	result, err := json.Marshal(orders)
 	if err != nil {
 		return err
@@ -59,7 +92,10 @@ var orderStatusCmd = &cobra.Command{
 	Long: `Check the status of GBDX orders.
 
 Pass the order ids in space delimited arguments to check multiple
-orders.`,
+orders, or if given no arguments, passed in delimited by newlines via
+stdin.
+
+The requests are done concurrently for speed.`,
 	RunE: orderStatus,
 }
 
