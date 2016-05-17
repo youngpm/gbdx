@@ -27,6 +27,8 @@ import (
 	"bufio"
 	"os"
 
+	"sync"
+
 	"github.com/spf13/cobra"
 	"github.com/youngpm/gbdx"
 )
@@ -48,12 +50,6 @@ func (o *Orders) Append(order *gbdx.Order) {
 
 func order(cmd *cobra.Command, args []string) (err error) {
 
-	// Aquire an Api.
-	api, err := apiFromConfig()
-	if err != nil {
-		return err
-	}
-
 	// Read catalog ids from stdin (line seperated)  if given no arguments.
 	if len(args) == 0 {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -62,13 +58,72 @@ func order(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 
-	// Order them.
-	order, err := api.NewOrder(args)
+	// We do things concurrently, so make a channel for returning
+	// responses on and one to use as a counting semaphore.
+	type orderResponse struct {
+		order *gbdx.Order
+		err   error
+	}
+	ch := make(chan orderResponse)
+	sema := make(chan struct{}, 10) // Max concurrent requests.
+	quit := make(chan struct{})
+	defer close(quit)
+
+	// Aquire an Api.
+	api, err := apiFromConfig()
 	if err != nil {
 		return err
 	}
 
-	result, err := json.Marshal(order)
+	// Place the order concurrently in batches of 100.
+	var n sync.WaitGroup
+	for i := 0; i < len(args); i += 100 {
+		j := i + 100
+		if j > len(args) {
+			j = len(args)
+		}
+
+		n.Add(1)
+		go func(a []string) {
+			defer n.Done()
+
+			select {
+			case sema <- struct{}{}:
+			case <-quit:
+				return
+			}
+
+			var o orderResponse
+			o.order, o.err = api.NewOrder(a)
+			<-sema
+			ch <- o
+		}(args[i:j])
+	}
+
+	// Close ch once all goroutines have returned.
+	go func() {
+		n.Wait()
+		close(ch)
+	}()
+
+	var orders Orders
+	for resp := range ch {
+
+		// On error, send quit signal and drain the channel.
+		if resp.err != nil {
+			quit <- struct{}{}
+			go func() {
+				for range ch {
+					// Drain any stragglers.
+				}
+			}()
+			return resp.err
+		}
+
+		orders.Append(resp.order)
+	}
+
+	result, err := json.Marshal(orders)
 	if err != nil {
 		return err
 	}

@@ -46,11 +46,11 @@ func NewApi(c Config) (*Api, error) {
 	}
 
 	tokenSource := oauth2Conf.TokenSource(context.TODO(), token)
+
 	return &Api{
 		tokenSource: tokenSource,
 		client:      oauth2.NewClient(context.TODO(), tokenSource),
 	}, err
-
 }
 
 // Token returns a GBDX auth token.
