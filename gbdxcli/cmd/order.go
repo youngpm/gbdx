@@ -94,7 +94,7 @@ func order(cmd *cobra.Command, args []string) (err error) {
 			}
 
 			var o orderResponse
-			o.order, o.err = api.NewOrder(a)
+			o.order, o.err = api.NewOrder(a...)
 			<-sema
 			ch <- o
 		}(args[i:j])

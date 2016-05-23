@@ -42,7 +42,7 @@ func (a *Api) OrderStatus(orderID string) (*Order, error) {
 }
 
 // NewOrder submits a new order.
-func (a *Api) NewOrder(IDs []string) (*Order, error) {
+func (a *Api) NewOrder(IDs ...string) (*Order, error) {
 
 	jsonBody, err := json.Marshal(IDs)
 	if err != nil {
