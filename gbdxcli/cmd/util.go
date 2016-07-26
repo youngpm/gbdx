@@ -14,7 +14,7 @@ import (
 // ensureGBDXDir will create the gbdx directory if it doesn't already exist.
 func ensureGBDXDir() (string, error) {
 	gbdxPath := path.Join(userHomeDir(), ".gbdx")
-	err := os.MkdirAll(gbdxPath, 0600)
+	err := os.MkdirAll(gbdxPath, 0700)
 	return gbdxPath, err
 }
 
