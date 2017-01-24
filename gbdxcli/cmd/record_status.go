@@ -43,7 +43,10 @@ func recordStatus(cmd *cobra.Command, args []string) (err error) {
 	// We do things concurrently, so make a channel for returning
 	// responses on and one to use as a counting semaphore.
 	type recordResponse struct {
-		record *gbdx.Record
+		record    *gbdx.Record
+		record_1b *gbdx.Record_1B
+		record_ls *gbdx.Record_Landsat
+		record_ih *gbdx.Record_Idaho
 		err   error
 	}
 	ch := make(chan recordResponse, len(args))
@@ -60,7 +63,7 @@ func recordStatus(cmd *cobra.Command, args []string) (err error) {
 		go func(id string) {
 			sema <- struct{}{}
 			var o recordResponse
-			o.record, o.err = api.RecordStatus(id)
+			o.record, o.record_1b, o.record_ls, o.record_ih, o.err = api.RecordStatus(id)
 			<-sema
 			ch <- o
 		}(id)
@@ -68,21 +71,75 @@ func recordStatus(cmd *cobra.Command, args []string) (err error) {
 
 	// Aggregate the results.
 	var records []gbdx.Record
+	var record_1bs []gbdx.Record_1B
+	var record_landsats []gbdx.Record_Landsat
+	var record_idahos []gbdx.Record_Idaho
 	for range args {
 		o := <-ch
 		if o.err != nil {
 			return o.err
 		}
-		records = append(records, *o.record)
+		if o.record != nil {
+			records = append(records, *o.record)
+		}
+		if o.record_1b != nil {
+			record_1bs = append(record_1bs, *o.record_1b)
+		}
+		if o.record_ls != nil {
+                        record_landsats = append(record_landsats, *o.record_ls)
+                }
+		if o.record_ih != nil {
+                        record_idahos = append(record_idahos, *o.record_ih)
+                }
 	}
 
 	// Marshall the aggregated result.
 	for i := 0; i < len(records); i += 1 {
 		result, err := json.Marshal(records[i])
 		if err == nil {
-			fmt.Printf("%s\n", result)
+			if i < len(records)-1 {
+				fmt.Printf("%s,\n", result)
+			} else if len(record_1bs) == 0 && len(record_landsats) == 0 && len(record_idahos) == 0 {
+				fmt.Printf("%s\n", result)
+			} else {
+				fmt.Printf("%s,\n", result)
+			}
 		}
 	}
+	for i := 0; i < len(record_1bs); i += 1 {
+                result, err := json.Marshal(record_1bs[i])
+                if err == nil {
+                        if i < len(record_1bs)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else if len(record_landsats) == 0 && len(record_idahos) == 0 {
+                                fmt.Printf("%s\n", result)
+                        } else {
+				fmt.Printf("%s,\n", result)
+			}
+                }
+        }
+	for i := 0; i < len(record_landsats); i += 1 {
+                result, err := json.Marshal(record_landsats[i])
+                if err == nil {
+                        if i < len(record_landsats)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else if len(record_idahos) == 0 {
+                                fmt.Printf("%s\n", result)
+                        } else {
+                                fmt.Printf("%s,\n", result)
+                        }
+                }
+        }
+	for i := 0; i < len(record_idahos); i += 1 {
+                result, err := json.Marshal(record_idahos[i])
+                if err == nil {
+                        if i < len(record_idahos)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else {
+                                fmt.Printf("%s\n", result)
+                        }
+                }
+        }
 	return cacheToken(api)
 }
 

@@ -29,6 +29,12 @@ func getSearchAreaFromArgs(inVal []string) (string) {
 func getFilterFromArgs(inVal []string) (string) {
 	if len(inVal) == 5 {
 		return inVal[4]
+	} else if len(inVal) == 4 {
+		if strings.HasPrefix(inVal[3],"POLYGON((") {
+			return ""
+		} else {
+			return inVal[3]
+		}
 	} else if len(inVal) > 5 {
         	suffixStr := "))"
 		for i := 5; i < len(inVal); i += 1 {
@@ -42,6 +48,16 @@ func getFilterFromArgs(inVal []string) (string) {
 				}
 				return filter.String()
        	                 }
+		}
+	}
+	return ""
+}
+
+func getSpecialOpFromLimit(inVal string) (string) {
+	many_filters := strings.Split(inVal, ",")
+	for i := 0; i < len(many_filters); i += 1 {
+		if strings.HasPrefix(many_filters[i], "limit=") {
+			return strings.Trim(many_filters[i], "limit=")
 		}
 	}
 	return ""

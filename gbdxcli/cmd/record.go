@@ -27,6 +27,7 @@ import (
 
 	"bufio"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -37,21 +38,36 @@ import (
 // Currently, the GBDX api will only let you search 100 items at a time,
 // but this is inconvienent to deal with.
 type Records struct {
-	IDs        []string      `json:"search_ids"`
-	Collection []gbdx.Record `json:"search_records"`
+	IDs           []string         `json:"search_ids"`
+	Collection    []gbdx.Record    `json:"search_records"`
+	Collection_1B []gbdx.Record_1B `json:"search_1b_records"`
+	Collection_LS []gbdx.Record_Landsat `json:"search_landsat_records"`
+	Collection_IH []gbdx.Record_Idaho `json:"search_idaho_records"`
 }
 
-func (r *Records) Append(parent *gbdx.Result_Parent) {
-        if len(parent.SearchTag) == 0 {
-		r.IDs = append(r.IDs, string(len(r.IDs)))
-        } else {
-		r.IDs = append(r.IDs, parent.SearchTag)
+func (r *Records) Append(parent *gbdx.Result_Parent, parent_1b *gbdx.Result_1B_Parent, parent_ls *gbdx.Result_Landsat_Parent, parent_ih *gbdx.Result_Idaho_Parent) {
+	r.IDs = append(r.IDs, string(len(r.IDs)))
+        // if len(parent.SearchTag) == 0 {
+ 	// 	r.IDs = append(r.IDs, string(len(r.IDs)))
+        // } else {
+	// 	r.IDs = append(r.IDs, parent.SearchTag)
+        // }
+        if parent != nil {
+		r.Collection = append(r.Collection, parent.Records...)
+	}
+	if parent_1b != nil {
+		r.Collection_1B = append(r.Collection_1B, parent_1b.Records...)
+	}
+	if parent_ls != nil {
+		r.Collection_LS = append(r.Collection_LS, parent_ls.Records...)
+	}
+	if parent_ih != nil {
+                r.Collection_IH = append(r.Collection_IH, parent_ih.Records...)
         }
-	r.Collection = append(r.Collection, parent.Records...)
 }
 
-func dedup_records(r Records) ([]gbdx.Record) {
-	if len(r.IDs) == 0 {
+func dedup_records(r Records, most_recent bool, aoi_in_image bool) ([]gbdx.Record) {
+	if len(r.IDs) == 0 || len(r.Collection) == 0 {
 		return []gbdx.Record{}
 	}
 
@@ -65,18 +81,103 @@ func dedup_records(r Records) ([]gbdx.Record) {
 	}
 
 	retArr := make([]gbdx.Record, 0, len(mRecords))
+	var recent_rec gbdx.Record
+        var recent_timestamp string = "1970-01-01T00:00:00.000Z"
 	for _, value := range mRecords {
 		retArr = append(retArr, value)
+		if most_recent == true {
+			if strings.Compare(value.Props.Timestamp,recent_timestamp) > 0 {
+				recent_rec = value
+				recent_timestamp = value.Props.Timestamp
+			} 
+		}
+	}
+	if most_recent == true {
+		return []gbdx.Record{recent_rec}
 	}
 	return retArr
 }
 
+func dedup_1b_records(r Records, most_recent bool, aoi_in_image bool) ([]gbdx.Record_1B) {
+        if len(r.IDs) == 0 || len(r.Collection_1B) == 0 {
+                return []gbdx.Record_1B{}
+        }
+
+        mRecords := make(map[string]gbdx.Record_1B)
+        for i := 0; i < len(r.Collection_1B); i++ {
+                rec := r.Collection_1B[i]
+                _, exist := mRecords[rec.ID]
+                if exist == false {
+                        mRecords[rec.ID] = rec
+                }
+        }
+
+        retArr := make([]gbdx.Record_1B, 0, len(mRecords))
+	var recent_rec gbdx.Record_1B
+        var recent_timestamp string = "1970-01-01T00:00:00.000Z"
+        for _, value := range mRecords {
+                retArr = append(retArr, value)
+                if most_recent == true {
+                        if strings.Compare(value.Props.Timestamp,recent_timestamp) > 0 {
+                                recent_rec = value
+                                recent_timestamp = value.Props.Timestamp
+                        }
+                }
+        }
+        if most_recent == true {
+                return []gbdx.Record_1B{recent_rec}
+        }
+        return retArr
+}
+
+func dedup_ls_records(r Records) ([]gbdx.Record_Landsat) {
+        if len(r.IDs) == 0 || len(r.Collection_LS) == 0 {
+                return []gbdx.Record_Landsat{}
+        }
+
+        mRecords := make(map[string]gbdx.Record_Landsat)
+        for i := 0; i < len(r.Collection_LS); i++ {
+                rec := r.Collection_LS[i]
+                _, exist := mRecords[rec.ID]
+                if exist == false {
+                        mRecords[rec.ID] = rec
+                }
+        }
+
+        retArr := make([]gbdx.Record_Landsat, 0, len(mRecords))
+        for _, value := range mRecords {
+                retArr = append(retArr, value)
+        }
+        return retArr
+}
+
+func dedup_idaho_records(r Records) ([]gbdx.Record_Idaho) {
+        if len(r.IDs) == 0 || len(r.Collection_IH) == 0 {
+                return []gbdx.Record_Idaho{}
+        }
+
+        mRecords := make(map[string]gbdx.Record_Idaho)
+        for i := 0; i < len(r.Collection_IH); i++ {
+                rec := r.Collection_IH[i]
+                _, exist := mRecords[rec.ID]
+                if exist == false {
+                        mRecords[rec.ID] = rec
+                }
+        }
+
+        retArr := make([]gbdx.Record_Idaho, 0, len(mRecords))
+        for _, value := range mRecords {
+                retArr = append(retArr, value)
+        }
+        return retArr
+}
+
 func search(cmd *cobra.Command, args []string) (err error) {
 
-	// Read record ids from stdin (line separated)  if given no arguments.
+	// Read record ids from stdin (line separated) if given no arguments.
 	addAreas := []string{}
 	foundAddAreas := false
-	
+
 	if len(args) == 0 {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
@@ -84,7 +185,11 @@ func search(cmd *cobra.Command, args []string) (err error) {
 			if len(line) == 0 {
 				break
 			} else if len(line) <= 8 {
-				foundAddAreas = true
+				if strings.HasPrefix(line, "#") {
+					foundAddAreas = true
+				} else {
+					args = append(args, line)
+				}
 			} else if foundAddAreas == false {
 				args = append(args, line)
 			} else {
@@ -93,7 +198,7 @@ func search(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 	if len(args) < 3 {
-		err := errors.New("Required arguments are missing: StartDate, EndDate, Type")
+		err := errors.New("Required arguments are missing: StartDate, EndDate, Type(s)")
 		return err
 	}
 
@@ -106,7 +211,10 @@ func search(cmd *cobra.Command, args []string) (err error) {
 	// We do things concurrently, so make a channel for returning
 	// responses on and one to use as a counting semaphore.
 	type recordResponse struct {
-		parent *gbdx.Result_Parent
+		parent    *gbdx.Result_Parent
+		parent_1b *gbdx.Result_1B_Parent
+		parent_ls *gbdx.Result_Landsat_Parent
+		parent_ih *gbdx.Result_Idaho_Parent
 		err   error
 	}
 	ch := make(chan recordResponse)
@@ -130,8 +238,13 @@ func search(cmd *cobra.Command, args []string) (err error) {
 
 	filter := getFilterFromArgs(args)
         if len(filter) > 0 {
-		args[4] = filter
-		j = 5
+		if len(polygons) >= 1 {
+			args[4] = filter
+			j = 5
+		} else {
+			args[3] = filter
+			j = 4
+		}
         }
 
 	var n sync.WaitGroup
@@ -151,12 +264,12 @@ func search(cmd *cobra.Command, args []string) (err error) {
 				return
 			}
 
-			if len(a) > 3 {
+			if len(a) > 3 && len(polygons) >= 1 {
 				a[3] = p_str
 			}
 
 			var o recordResponse
-			o.parent, o.err = api.GetRecords(a)
+			o.parent, o.parent_1b, o.parent_ls, o.parent_ih, o.err = api.GetRecords(a)
 			<-sema
 			ch <- o
 		}(args[0:j],polygon_str)
@@ -182,23 +295,63 @@ func search(cmd *cobra.Command, args []string) (err error) {
 			}()
 			return resp.err
 		}
-		parents.Append(resp.parent)
-
+		parents.Append(resp.parent, resp.parent_1b, resp.parent_ls, resp.parent_ih)
 	}
 
 	// Marshall the aggregated result.
-	records := dedup_records(parents)
+	specialOp := getSpecialOpFromLimit(filter)
+	records := dedup_records(parents, strings.HasPrefix(specialOp,"recen"), strings.HasPrefix(specialOp,"bestfi"))
+	record_1bs := dedup_1b_records(parents, strings.HasPrefix(specialOp,"recen"), strings.HasPrefix(specialOp,"bestfi"))
+	record_landsats := dedup_ls_records(parents)
+	record_idahos := dedup_idaho_records(parents)
 	fmt.Printf("[\n")
 	for i := 0; i < len(records); i += 1 {
 		result, err := json.Marshal(records[i])
 		if err == nil {
 			if i < len(records)-1 {
 				fmt.Printf("%s,\n", result)
-			} else {
+			} else if len(record_1bs) == 0 && len(record_landsats) == 0 && len(record_idahos) == 0 {
 				fmt.Printf("%s\n", result)
+			} else {
+				fmt.Printf("%s,\n", result)
 			}
 		}
 	}
+        for i := 0; i < len(record_1bs); i += 1 {
+                result, err := json.Marshal(record_1bs[i])
+                if err == nil {
+                        if i < len(record_1bs)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else if len(record_landsats) == 0 && len(record_idahos) == 0 {
+                                fmt.Printf("%s\n", result)
+			} else {
+                                fmt.Printf("%s,\n", result)
+                        }
+		}
+        }
+	for i := 0; i < len(record_landsats); i += 1 {
+                result, err := json.Marshal(record_landsats[i])
+                if err == nil {
+                        if i < len(record_landsats)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else if len(record_idahos) == 0 {
+				fmt.Printf("%s\n", result)
+			} else {
+                                fmt.Printf("%s,\n", result)
+                        }
+                }
+        }
+	for i := 0; i < len(record_idahos); i += 1 {
+                result, err := json.Marshal(record_idahos[i])
+                if err == nil {
+                        if i < len(record_idahos)-1 {
+                                fmt.Printf("%s,\n", result)
+                        } else {
+                                fmt.Printf("%s\n", result)
+                        }
+                }
+        }
+
 	fmt.Printf("]\n")
 	return cacheToken(api)
 }

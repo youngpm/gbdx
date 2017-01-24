@@ -1,4 +1,4 @@
-// Copyright © 2016 Patrick Young <patrick.mckendree.young@gmail.com>
+// Copyright © 2016 Michael Smith <mike.s.smith@digitalglobe.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,20 +28,20 @@ import (
 )
 
 // heartbeatCmd represents the heartbeat command
-var catalogHeartbeatCmd = &cobra.Command{
+var workflowHeartbeatCmd = &cobra.Command{
 	Use:   "heartbeat",
-	Short: "Check if the GBDX catalog endpoint is alive",
-	Long:  `Check if the GBDX catalog endpoint is alive.`,
+	Short: "Check if the GBDX workflow endpoint is alive",
+	Long:  `Check if the GBDX workflow endpoint is alive.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := gbdx.CatalogHeartbeat()
+		err := gbdx.WorkflowHeartbeat()
 		if err != nil {
-			fmt.Printf("GBDX catalog is down, reason: %v\n", err)
+			fmt.Printf("GBDX workflow is down, reason: %v\n", err)
 		} else {
-			fmt.Printf("GBDX catalog is up.\n")
+			fmt.Printf("GBDX workflow is up.\n")
 		}
 	},
 }
 
 func init() {
-	recordCmd.AddCommand(catalogHeartbeatCmd)
+	workflowCmd.AddCommand(workflowHeartbeatCmd)
 }

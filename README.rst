@@ -34,6 +34,7 @@ Get help using one of the gbdxcli --help commands.
            order       Submit orders to GBDX
            s3          Interface to S3 Storage Service
            token       Get a GBDX token
+           workflow    Search for workflows using GBDX  
 
          Flags:
                --profile string   GBDX profile to use (default "default")
@@ -47,7 +48,7 @@ Add your GBDX credentials using gbdxcli configure.
 Usage
 ---------
 
-Here are examples of a catalog search command.  See the docs for more details.
+Here are examples of a catalog search command using command line, file redirect and line by line entering data.
 
 .. code-block:: bash
 
@@ -56,6 +57,18 @@ Here are examples of a catalog search command.  See the docs for more details.
 .. code-block:: bash
 
         $ gbdxcli catalog 2016-09-01T00:00:00.000Z 2016-09-07T00:00:00.000Z DigitalGlobeAcquisition POLYGON\(\(-82.7 28.945,-82.55 28.945,-82.55 28.864,-82.7 28.864,-82.7 28.945\)\) cloudCover \< 25
+
+.. code-block:: bash
+
+        $ gbdxcli catalog
+        2017-01-22T00:00:00.000Z
+        2017-01-22T23:59:59.000Z
+        IDAHOImage
+
+
+.. code-block:: bash
+
+        $ gbdxcli catalog < aoi_search.txt
 
 Development
 -----------
