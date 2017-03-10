@@ -16,6 +16,7 @@ var endpoints = struct {
 	thumbnail        string
 	orders           string
 	ordersHeartbeat  string
+	ordersLocation   string
 	record           string
 	catalogSearch    string
 	catalogHeartbeat string
@@ -27,6 +28,7 @@ var endpoints = struct {
 	thumbnail:        "https://geobigdata.io/thumbnails/v1/thumbnail/",
 	orders:           "https://geobigdata.io/orders/v2/order/",
 	ordersHeartbeat:  "https://geobigdata.io/orders/v2/heartbeat/",
+	ordersLocation:   "https://geobigdata.io/orders/v2/location",
 	record:           "https://geobigdata.io/catalog/v1/record/",
 	catalogSearch:    "https://geobigdata.io/catalog/v1/search?includeRelationships=false",
 	catalogHeartbeat: "https://geobigdata.io/catalog/v1/heartbeat/",

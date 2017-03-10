@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Order holds the ID and all the associated Acquisitions of a submitted order.
@@ -62,6 +63,40 @@ func (a *Api) NewOrder(IDs ...string) (*Order, error) {
 	err = json.NewDecoder(resp.Body).Decode(&order)
 	if err != nil {
 		return nil, fmt.Errorf("NewOrder response failed to decode properly: %v", err)
+	}
+	return order, err
+}
+
+// OrderLocation returns the location of orders in AWS.
+func (a *Api) OrderLocation(IDs ...string) (*Order, error) {
+
+	u, err := url.Parse(endpoints.ordersLocation)
+	if err != nil {
+		return nil, fmt.Errorf("OrderLocation failed parsing the url: %v", err)
+	}
+
+	idBytes, err := json.Marshal(IDs)
+	if err != nil {
+		return nil, fmt.Errorf("NewOrder failed to marshall input IDs: %v", err)
+	}
+
+	q := u.Query()
+	q.Set("acquisitionIds", string(idBytes))
+	u.RawQuery = q.Encode()
+
+	resp, err := a.client.Get(u.String())
+	if err != nil {
+		return nil, fmt.Errorf("OrderLocation failed to get: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("OrderLocation get returned a bad status code: %s", resp.Status)
+	}
+
+	var order *Order
+	err = json.NewDecoder(resp.Body).Decode(&order)
+	if err != nil {
+		return nil, fmt.Errorf("OrderLocation response failed to decode properly: %v", err)
 	}
 	return order, err
 }

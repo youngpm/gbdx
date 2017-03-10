@@ -17,39 +17,20 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-
-	"bufio"
 	"os"
-
 	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/youngpm/gbdx"
 )
 
-// Orders is an aggregation of the content of a collection of GBDX
-// Order structs.  Currently, the GBDX api will only let your order 100
-// items at a time, but this is inconvienent to deal with when placing
-// and checking on bulk orders.
-type Orders struct {
-	IDs          []string           `json:"order_ids"`
-	Acquisitions []gbdx.Acquisition `json:"acquisitions"`
-}
-
-// Append returns a Orders object by aggregating together a slice of gbdx.Order objects.
-func (o *Orders) Append(order *gbdx.Order) {
-	o.IDs = append(o.IDs, order.ID)
-	o.Acquisitions = append(o.Acquisitions, order.Acquisitions...)
-}
-
-func order(cmd *cobra.Command, args []string) (err error) {
-
+func orderLocation(cmd *cobra.Command, args []string) (err error) {
 	// Read catalog ids from stdin (line seperated)  if given no arguments.
 	if len(args) == 0 {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -94,7 +75,7 @@ func order(cmd *cobra.Command, args []string) (err error) {
 			}
 
 			var o orderResponse
-			o.order, o.err = api.NewOrder(a...)
+			o.order, o.err = api.OrderLocation(a...)
 			<-sema
 			ch <- o
 		}(args[i:j])
@@ -128,22 +109,29 @@ func order(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 	fmt.Printf("%s\n", result)
-	return cacheToken(api)
+
+	return nil
 }
 
-// orderCmd represents the order command
-var orderCmd = &cobra.Command{
-	Use:   "order [ACQIDS]",
-	Short: "Submit orders to GBDX",
-	Long: `Order acquisitions from GBDX.
+var orderLocationCmd = &cobra.Command{
+	Use:   "location [CATIDs]",
+	Short: "Check the location of GBDX catalog IDs",
+	Long: `Check the location of GBDX catalog IDs
 
-Acquisition IDs can be specified as space delimited arguments on the
-command line, or if given no arguments, passed in delimited by
-newlines via stdin.
+Pass the catalog ids in space delimited arguments to check multiple
+catalog ids, or if given no arguments, passed in delimited by newlines via
+stdin.
+
+A useful command to run to see how many strips might be ordered is
+something like
+
+  cat file-of-cids.txt | gbdxcli order location | jq '.acquisitions[].state' | sort | uniq -c
+
+which will return a count of "delivered" and "not_found", the latter
+would be ordered if you were to submit those catalog ids.
 `,
-	RunE: order,
-}
+	RunE: orderLocation}
 
 func init() {
-	RootCmd.AddCommand(orderCmd)
+	orderCmd.AddCommand(orderLocationCmd)
 }
