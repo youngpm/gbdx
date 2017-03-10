@@ -104,7 +104,7 @@ func orderLocation(cmd *cobra.Command, args []string) (err error) {
 		orders.Append(resp.order)
 	}
 
-	result, err := json.Marshal(orders)
+	result, err := json.Marshal(orders.Acquisitions)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ stdin.
 A useful command to run to see how many strips might be ordered is
 something like
 
-  cat file-of-cids.txt | gbdxcli order location | jq '.acquisitions[].state' | sort | uniq -c
+  cat file-of-cids.txt | gbdxcli order location | jq '.[].state' | sort | uniq -c
 
 which will return a count of "delivered" and "not_found", the latter
 would be ordered if you were to submit those catalog ids.
