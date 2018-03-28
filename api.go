@@ -1,6 +1,7 @@
 package gbdx
 
 import (
+	"fmt"
 	"net/http"
 
 	"golang.org/x/net/context"
@@ -9,11 +10,11 @@ import (
 
 // Config holds the various configuation items we need to interact with GBDX.
 type Config struct {
-	Username     string        `mapstructure:"gbdx_username" toml:"gbdx_username"`
-	Password     string        `mapstructure:"gbdx_password" toml:"gbdx_password"`
-	ClientID     string        `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
-	ClientSecret string        `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
-	Token        *oauth2.Token `mapstructure:"gbdx_token" toml:"gbdx_token"`
+	Username string `mapstructure:"gbdx_username" toml:"gbdx_username"`
+	Password string `mapstructure:"gbdx_password" toml:"gbdx_password"`
+	//ClientID     string        `mapstructure:"gbdx_client_id" toml:"gbdx_client_id"`
+	//ClientSecret string        `mapstructure:"gbdx_client_secret" toml:"gbdx_client_secret"`
+	Token *oauth2.Token `mapstructure:"gbdx_token" toml:"gbdx_token"`
 }
 
 // Api holds GBDX authorized http clients and tokens.
@@ -26,9 +27,9 @@ type Api struct {
 func NewApi(c Config) (*Api, error) {
 
 	oauth2Conf := &oauth2.Config{
-		ClientID:     c.ClientID,
-		ClientSecret: c.ClientSecret,
-		Endpoint:     oauth2.Endpoint{TokenURL: endpoints.tokens},
+		//ClientID:     c.ClientID,
+		//ClientSecret: c.ClientSecret,
+		Endpoint: oauth2.Endpoint{TokenURL: endpoints.tokens},
 	}
 
 	// Use a pre existing token if we were passed one.
@@ -41,6 +42,7 @@ func NewApi(c Config) (*Api, error) {
 		token, err = oauth2Conf.PasswordCredentialsToken(ctx, c.Username, c.Password)
 		defer cancel()
 		if err != nil {
+			fmt.Println(c)
 			return nil, err
 		}
 	}

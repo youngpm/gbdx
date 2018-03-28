@@ -67,8 +67,8 @@ func configure(cmd *cobra.Command, args []string) (err error) {
 	}{
 		{"GBDX User Name", &profile.ActiveConfig.Username, false},
 		{"GBDX Password", &profile.ActiveConfig.Password, true},
-		{"GBDX Client ID", &profile.ActiveConfig.ClientID, true},
-		{"GBDX Client Secret", &profile.ActiveConfig.ClientSecret, true},
+		//{"GBDX Client ID", &profile.ActiveConfig.ClientID, true},
+		//{"GBDX Client Secret", &profile.ActiveConfig.ClientSecret, true},
 	}
 	for _, configVar := range configVars {
 		// Pretty print the prompt for this variable.
